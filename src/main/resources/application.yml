@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: stock-price-prediction-bot
+  config:
+    import: classpath:hidden.yml
+
+stock-price-prediction-bot:
+  name: StockPricePredictionBot
