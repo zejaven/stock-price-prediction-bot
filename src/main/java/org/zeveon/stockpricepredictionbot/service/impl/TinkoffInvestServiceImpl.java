@@ -13,6 +13,7 @@ import ru.tinkoff.piapi.core.InvestApi;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -37,6 +38,7 @@ public class TinkoffInvestServiceImpl implements TinkoffInvestService {
     public Map<String, String> getAvailableTickers() {
         var sharesResponse = api.getInstrumentsService().getTradableSharesSync();
         return sharesResponse.stream()
+                .sorted(comparing(Share::getName))
                 .collect(toMap(Share::getName, Share::getTicker, (a, b) -> a, LinkedHashMap::new));
     }
 }
