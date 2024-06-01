@@ -15,12 +15,16 @@ import java.util.Map;
 public enum Command {
 
     HELP("/help"),
-    TEST("/test");
+    AVAILABLE_STOCKS("/available_stocks");
 
     public final String text;
 
     public static final Map<Command, String> LIST = new LinkedHashMap<>() {{
-        put(TEST, "Test response");
+        put(AVAILABLE_STOCKS, """
+                Checks which stocks are available for prediction.
+                Returns buttons with stock names.
+                Starts prediction after pressing specific stock button.
+                """);
     }};
 
     public static Command fromText(String text) {

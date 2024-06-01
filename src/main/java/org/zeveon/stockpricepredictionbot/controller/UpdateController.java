@@ -1,19 +1,24 @@
 package org.zeveon.stockpricepredictionbot.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Controller;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.model.Command;
+import org.zeveon.stockpricepredictionbot.service.KeyboardService;
+import org.zeveon.stockpricepredictionbot.state.available_stock_prediction.StocksPageState;
 
-import java.util.stream.IntStream;
-
-import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.*;
+import static org.zeveon.stockpricepredictionbot.state.ConvertKey.BASIC;
+import static org.zeveon.stockpricepredictionbot.state.Variable.PAGE;
+import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createMessage;
 import static org.zeveon.stockpricepredictionbot.util.StringUtil.*;
 
 /**
@@ -27,6 +32,8 @@ public class UpdateController {
 
     private StockPricePredictionBot bot;
 
+    private final KeyboardService keyboardService;
+
     public void registerBot(StockPricePredictionBot stockPricePredictionBot) {
         this.bot = stockPricePredictionBot;
         try {
@@ -37,27 +44,41 @@ public class UpdateController {
     }
 
     public void processUpdate(Update update) {
-        var message = update.getMessage();
-        var chatId = message.getChatId();
-        var text = message.getText();
-        var command = text.split(WHITESPACE_CHARACTER)[0];
-        if (command.startsWith(SLASH)) {
-            var commandAndInvocation = command.split(AT_SIGN);
-            if (commandAndInvocation.length == 1 || commandAndInvocation[1].equals(bot.getBotUsername())) {
-                switch (Command.fromText(commandAndInvocation[0])) {
-                    case HELP -> sendResponse(createMessage(chatId, buildHelpResponse()));
-                    case TEST -> processTestResponse(chatId);
-                    default -> sendResponse(createMessage(chatId, buildEmptyResponse()));
+        if (bot.hasState()) {
+            var state = bot.getBotState();
+            state.handleUpdate(update, bot);
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
+            var message = update.getMessage();
+            var chatId = message.getChatId();
+            var text = message.getText();
+            var command = text.split(WHITESPACE_CHARACTER)[0];
+            if (command.startsWith(SLASH)) {
+                var commandAndInvocation = command.split(AT_SIGN);
+                if (commandAndInvocation.length == 1 || commandAndInvocation[1].equals(bot.getBotUsername())) {
+                    switch (Command.fromText(commandAndInvocation[0])) {
+                        case HELP -> sendResponse(createMessage(chatId, buildHelpResponse()));
+                        case AVAILABLE_STOCKS -> processAvailableStocksResponse();
+                        default -> sendResponse(createMessage(chatId, buildEmptyResponse()));
+                    }
                 }
             }
         }
     }
 
-    private void processTestResponse(Long chatId) {
-        sendResponse(createMessage(chatId, "Some test message",
-                createHorizontalKeyboardMarkup(IntStream.range(1, 5).boxed()
-                        .map(n -> createButton("Button %d".formatted(n), n.toString()))
-                        .toList())));
+    private void processAvailableStocksResponse() {
+        bot.putSessionVariable(PAGE, 1);
+        bot.nextState(
+                new StocksPageState(this, bot),
+                BASIC
+        );
+    }
+
+    public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page) {
+        return keyboardService.getStocksKeyboard(page);
+    }
+
+    public Message sendResponse(Message message) {
+        return sendResponse(convertMessageToSendMessage(message));
     }
 
     public Message sendResponse(SendMessage message) {
@@ -67,6 +88,25 @@ public class UpdateController {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public void deleteMessage(Long chatId, int messageId) {
+        var deleteMessage = new DeleteMessage();
+        deleteMessage.setChatId(chatId);
+        deleteMessage.setMessageId(messageId);
+        try {
+            bot.execute(deleteMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private SendMessage convertMessageToSendMessage(Message message) {
+        var sendMessage = new SendMessage();
+        sendMessage.setChatId(message.getChatId());
+        sendMessage.setText(message.getText());
+        sendMessage.setReplyMarkup(message.getReplyMarkup());
+        return sendMessage;
     }
 
     private String buildHelpResponse() {

@@ -22,14 +22,25 @@
 		<telegrambot.starter.version>6.5.0</telegrambot.starter.version>
 		<retrofit.version>2.9.0</retrofit.version>
 		<jackson.version>2.13.1</jackson.version>
+		<tinkoff.investments.version>1.5</tinkoff.investments.version>
+		<aspectj.version>1.9.22.1</aspectj.version>
 	</properties>
 
 	<dependencies>
+		<!-- Spring Boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 
+		<!-- AspectJ -->
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjtools</artifactId>
+			<version>${aspectj.version}</version>
+		</dependency>
+
+		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -60,6 +71,13 @@
 			<groupId>com.squareup.retrofit2</groupId>
 			<artifactId>converter-jackson</artifactId>
 			<version>${retrofit.version}</version>
+		</dependency>
+
+		<!-- Tinkoff Investments -->
+		<dependency>
+			<groupId>ru.tinkoff.piapi</groupId>
+			<artifactId>java-sdk-core</artifactId>
+			<version>${tinkoff.investments.version}</version>
 		</dependency>
 	</dependencies>
 

@@ -27,8 +27,16 @@ public class CommonMessageUtil {
         return message;
     }
 
-    public static InlineKeyboardMarkup createHorizontalKeyboardMarkup(List<InlineKeyboardButton> buttons) {
+    public static InlineKeyboardMarkup createHorizontalButtonKeyboardMarkup(List<InlineKeyboardButton> buttons) {
         return createButtonsKeyboardMarkup(singletonList(buttons));
+    }
+
+    public static InlineKeyboardMarkup createVerticalButtonKeyboardMarkup(List<InlineKeyboardButton> buttons) {
+        var inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        var buttonsTable = new ArrayList<List<InlineKeyboardButton>>();
+        buttons.forEach(button -> buttonsTable.add(singletonList(button)));
+        inlineKeyboardMarkup.setKeyboard(buttonsTable);
+        return inlineKeyboardMarkup;
     }
 
     public static InlineKeyboardMarkup createButtonsKeyboardMarkup(List<List<InlineKeyboardButton>> buttonsTable) {
