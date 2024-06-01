@@ -8,6 +8,8 @@ import org.zeveon.stockpricepredictionbot.context.ChatContext;
 import org.zeveon.stockpricepredictionbot.controller.UpdateController;
 import org.zeveon.stockpricepredictionbot.model.CallbackCommand;
 import org.zeveon.stockpricepredictionbot.state.BotState;
+import org.zeveon.stockpricepredictionbot.state.Final;
+import org.zeveon.stockpricepredictionbot.state.Variable;
 import org.zeveon.stockpricepredictionbot.state.handler.CallbackQueryHandler;
 
 import java.util.Map;
@@ -21,10 +23,13 @@ import static org.zeveon.stockpricepredictionbot.util.TinkoffMessageUtil.LIMIT;
  * @author Zejaven
  */
 @Slf4j
-public class StocksPageState extends BotState implements CallbackQueryHandler {
+public class StocksPageState extends BotState implements CallbackQueryHandler, Final {
 
     private static final String BASIC_MESSAGE = """
             Here are available stocks for prediction:
+            """;
+    private static final String FINAL_MESSAGE = """
+            Chosen ticker: %s
             """;
 
     public StocksPageState(UpdateController updateController, StockPricePredictionBot bot) {
@@ -55,7 +60,8 @@ public class StocksPageState extends BotState implements CallbackQueryHandler {
                 case SEARCH -> bot.nextState(new StocksSearchState(updateController, bot), BASIC);
             }
         } catch (IllegalArgumentException e) {
-            log.info("Chosen ticker: %s".formatted(command));
+            updateStateVariable(TICKER, command);
+            bot.nextState(null, null);
         }
     }
 
@@ -70,5 +76,17 @@ public class StocksPageState extends BotState implements CallbackQueryHandler {
         return Map.of(
                 BASIC, createMessage(chatId, BASIC_MESSAGE, stocksKeyboardMarkup.getLeft())
         );
+    }
+
+    @Override
+    public SendMessage complete() {
+        var chatId = ChatContext.getInstance().getChatId();
+        var ticker = (String) getStateVariable(TICKER);
+        return createMessage(chatId, FINAL_MESSAGE.formatted(ticker));
+    }
+
+    @Override
+    protected boolean isVariableUpdatable(Variable key) {
+        return key == TICKER;
     }
 }
