@@ -24,6 +24,7 @@
 		<jackson.version>2.13.1</jackson.version>
 		<tinkoff.investments.version>1.5</tinkoff.investments.version>
 		<aspectj.version>1.9.22.1</aspectj.version>
+		<retrofit.version>2.9.0</retrofit.version>
 	</properties>
 
 	<dependencies>
@@ -78,6 +79,18 @@
 			<groupId>ru.tinkoff.piapi</groupId>
 			<artifactId>java-sdk-core</artifactId>
 			<version>${tinkoff.investments.version}</version>
+		</dependency>
+
+		<!-- Retrofit -->
+		<dependency>
+			<groupId>com.squareup.retrofit2</groupId>
+			<artifactId>retrofit</artifactId>
+			<version>${retrofit.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.retrofit2</groupId>
+			<artifactId>converter-jackson</artifactId>
+			<version>${retrofit.version}</version>
 		</dependency>
 	</dependencies>
 

@@ -6,3 +6,5 @@ spring:
 
 stock-price-prediction-bot:
   name: StockPricePredictionBot
+  app:
+    base-url: http://localhost:5000

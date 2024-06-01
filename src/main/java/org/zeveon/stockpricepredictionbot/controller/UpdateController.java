@@ -13,7 +13,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.model.Command;
+import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppRequest;
+import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppResponse;
 import org.zeveon.stockpricepredictionbot.service.KeyboardService;
+import org.zeveon.stockpricepredictionbot.service.PredictionAppService;
 import org.zeveon.stockpricepredictionbot.state.available_stock_prediction.StocksPageState;
 
 import static org.zeveon.stockpricepredictionbot.state.ConvertKey.BASIC;
@@ -33,6 +36,8 @@ public class UpdateController {
     private StockPricePredictionBot bot;
 
     private final KeyboardService keyboardService;
+
+    private final PredictionAppService predictionAppService;
 
     public void registerBot(StockPricePredictionBot stockPricePredictionBot) {
         this.bot = stockPricePredictionBot;
@@ -63,6 +68,10 @@ public class UpdateController {
                 }
             }
         }
+    }
+
+    public PredictionAppResponse predict(PredictionAppRequest request) {
+        return predictionAppService.predict(request);
     }
 
     private void processAvailableStocksResponse() {

@@ -7,6 +7,7 @@ import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.context.ChatContext;
 import org.zeveon.stockpricepredictionbot.controller.UpdateController;
 import org.zeveon.stockpricepredictionbot.model.CallbackCommand;
+import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppRequest;
 import org.zeveon.stockpricepredictionbot.state.BotState;
 import org.zeveon.stockpricepredictionbot.state.Final;
 import org.zeveon.stockpricepredictionbot.state.Variable;
@@ -60,7 +61,10 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
                 case SEARCH -> bot.nextState(new StocksSearchState(updateController, bot), BASIC);
             }
         } catch (IllegalArgumentException e) {
-            updateStateVariable(TICKER, command);
+            var response = updateController.predict(PredictionAppRequest.builder()
+                    .ticker(command)
+                    .build());
+            updateStateVariable(TICKER, response.getResponse());
             bot.nextState(null, null);
         }
     }
