@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.zeveon.stockpricepredictionbot.model.CallbackCommand.*;
 import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createButton;
 
@@ -24,16 +25,18 @@ public class TinkoffMessageUtil {
                 .map(share -> createButton(share.getKey(), share.getValue()))
                 .toList();
         var pageCount = (stocks.size() + LIMIT - 1) / LIMIT;
-        return buildGridKeyboard(buttons, List.of(
+        var navigationRow = List.of(
                 createButton("<-", LEFT.getText()),
                 createButton("%d / %d".formatted(page, pageCount), PAGE.getText()),
                 createButton("->", RIGHT.getText())
-        ), 1);
+        );
+        var searchRow = singletonList(createButton("Search", SEARCH.getText()));
+        return buildGridKeyboard(buttons, List.of(navigationRow, searchRow), 1);
     }
 
     private static InlineKeyboardMarkup buildGridKeyboard(
             List<InlineKeyboardButton> buttons,
-            List<InlineKeyboardButton> extra,
+            List<List<InlineKeyboardButton>> extra,
             int columnsSize
     ) {
         var inlineKeyboardMarkup = new InlineKeyboardMarkup();
@@ -41,7 +44,7 @@ public class TinkoffMessageUtil {
         for (int i = 0; i < buttons.size(); i += columnsSize) {
             buttonsTable.add(buttons.subList(i, Math.min(i + columnsSize, buttons.size())));
         }
-        buttonsTable.add(extra);
+        buttonsTable.addAll(extra);
         inlineKeyboardMarkup.setKeyboard(buttonsTable);
         return inlineKeyboardMarkup;
     }

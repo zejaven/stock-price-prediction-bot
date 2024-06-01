@@ -7,5 +7,5 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
  * @author Zejaven
  */
 public interface KeyboardService {
-    Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page);
+    Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page, String searchText);
 }

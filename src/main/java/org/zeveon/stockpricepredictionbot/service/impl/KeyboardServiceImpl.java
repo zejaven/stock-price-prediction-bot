@@ -7,6 +7,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.zeveon.stockpricepredictionbot.service.KeyboardService;
 import org.zeveon.stockpricepredictionbot.service.TinkoffInvestService;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import static org.zeveon.stockpricepredictionbot.util.TinkoffMessageUtil.buildStocksKeyboard;
 
 /**
@@ -19,8 +23,10 @@ public class KeyboardServiceImpl implements KeyboardService {
     private final TinkoffInvestService tinkoffInvestService;
 
     @Override
-    public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page) {
-        var availableTickers = tinkoffInvestService.getAvailableTickers();
+    public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page, String searchText) {
+        var availableTickers = tinkoffInvestService.getAvailableTickers().entrySet().stream()
+                .filter(e -> e.getKey().toLowerCase().contains(searchText.toLowerCase()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
         return Pair.of(buildStocksKeyboard(availableTickers, page), availableTickers.size());
     }
 }

@@ -14,7 +14,10 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.model.Command;
 import org.zeveon.stockpricepredictionbot.service.KeyboardService;
+import org.zeveon.stockpricepredictionbot.service.TinkoffInvestService;
 import org.zeveon.stockpricepredictionbot.state.available_stock_prediction.StocksPageState;
+
+import java.util.Map;
 
 import static org.zeveon.stockpricepredictionbot.state.ConvertKey.BASIC;
 import static org.zeveon.stockpricepredictionbot.state.Variable.PAGE;
@@ -33,6 +36,8 @@ public class UpdateController {
     private StockPricePredictionBot bot;
 
     private final KeyboardService keyboardService;
+
+    private final TinkoffInvestService tinkoffInvestService;
 
     public void registerBot(StockPricePredictionBot stockPricePredictionBot) {
         this.bot = stockPricePredictionBot;
@@ -73,8 +78,12 @@ public class UpdateController {
         );
     }
 
-    public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page) {
-        return keyboardService.getStocksKeyboard(page);
+    public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page, String searchText) {
+        return keyboardService.getStocksKeyboard(page, searchText != null ? searchText : "");
+    }
+
+    public Map<String, String> getAvailableStocks() {
+        return tinkoffInvestService.getAvailableTickers();
     }
 
     public Message sendResponse(Message message) {
