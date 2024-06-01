@@ -49,6 +49,7 @@ public class StocksPageState extends BotState implements CallbackQueryHandler {
                     bot.nextState(new StocksPageState(updateController, bot), BASIC);
                 }
             }
+            case PAGE -> bot.nextState(new StocksNavigationState(updateController, bot), BASIC);
         }
     }
 
