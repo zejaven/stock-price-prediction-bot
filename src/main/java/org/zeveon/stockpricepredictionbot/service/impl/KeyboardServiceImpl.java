@@ -25,7 +25,8 @@ public class KeyboardServiceImpl implements KeyboardService {
     @Override
     public Pair<InlineKeyboardMarkup, Integer> getStocksKeyboard(Integer page, String searchText) {
         var availableTickers = tinkoffInvestService.getAvailableTickers().entrySet().stream()
-                .filter(e -> e.getKey().toLowerCase().contains(searchText.toLowerCase()))
+                .filter(e -> e.getKey().toLowerCase().contains(searchText.toLowerCase())
+                        || e.getValue().toLowerCase().contains(searchText.toLowerCase()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
         return Pair.of(buildStocksKeyboard(availableTickers, page), availableTickers.size());
     }
