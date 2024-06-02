@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: stock-price-prediction-bot
+  config:
+    import: classpath:hidden.yml
+
+stock-price-prediction-bot:
+  name: StockPricePredictionBot
+  app:
+    base-url: http://stock-price-prediction-app:5000
