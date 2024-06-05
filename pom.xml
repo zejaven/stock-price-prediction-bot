@@ -21,7 +21,7 @@
 		<java.version>17</java.version>
 		<telegrambot.starter.version>6.5.0</telegrambot.starter.version>
 		<retrofit.version>2.9.0</retrofit.version>
-		<jackson.version>2.13.1</jackson.version>
+		<jackson.version>2.17.1</jackson.version>
 		<tinkoff.investments.version>1.5</tinkoff.investments.version>
 		<aspectj.version>1.9.22.1</aspectj.version>
 		<retrofit.version>2.9.0</retrofit.version>
@@ -31,7 +31,7 @@
 		<!-- Spring Boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
+			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
 		<!-- AspectJ -->

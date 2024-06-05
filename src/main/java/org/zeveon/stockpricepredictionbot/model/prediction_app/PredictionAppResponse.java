@@ -11,5 +11,5 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PredictionAppResponse {
-    private String response;
+    private String message;
 }

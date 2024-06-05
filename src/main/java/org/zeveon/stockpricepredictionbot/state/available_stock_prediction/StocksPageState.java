@@ -29,9 +29,6 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
     private static final String BASIC_MESSAGE = """
             Here are available stocks for prediction:
             """;
-    private static final String FINAL_MESSAGE = """
-            Chosen ticker: %s
-            """;
 
     public StocksPageState(UpdateController updateController, StockPricePredictionBot bot) {
         super(updateController, bot);
@@ -62,9 +59,10 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
             }
         } catch (IllegalArgumentException e) {
             var response = updateController.predict(PredictionAppRequest.builder()
+                    .chatId(ChatContext.getInstance().getChatId())
                     .ticker(command)
                     .build());
-            updateStateVariable(TICKER, response.getResponse());
+            updateStateVariable(MESSAGE, response.getMessage());
             bot.nextState(null, null);
         }
     }
@@ -85,12 +83,12 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
     @Override
     public SendMessage complete() {
         var chatId = ChatContext.getInstance().getChatId();
-        var ticker = (String) getStateVariable(TICKER);
-        return createMessage(chatId, FINAL_MESSAGE.formatted(ticker));
+        var message = (String) getStateVariable(MESSAGE);
+        return createMessage(chatId, message);
     }
 
     @Override
     protected boolean isVariableUpdatable(Variable key) {
-        return key == TICKER;
+        return key == MESSAGE;
     }
 }

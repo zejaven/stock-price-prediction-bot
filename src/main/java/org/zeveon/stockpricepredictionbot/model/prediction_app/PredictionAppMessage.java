@@ -10,7 +10,9 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PredictionAppRequest {
+public class PredictionAppMessage {
+
     private Long chatId;
-    private String ticker;
+
+    private String text;
 }

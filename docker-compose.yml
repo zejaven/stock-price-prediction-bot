@@ -12,6 +12,24 @@ services:
 
   stock-price-prediction-app:
     image: stock-price-prediction-app
+    environment:
+      - BOT_URL=http://stock-price-prediction-bot:8080/api/prediction-bot/message
+      - RESOURCE_PATH=/home/${APP_USER}/resources
     ports:
       - "5000:5000"
+    volumes:
+      - sftp_data:/home/${APP_USER}/resources
     command: ["python", "app.py"]
+
+  sftp:
+    image: atmoz/sftp
+    ports:
+      - "2222:22"
+    volumes:
+      - sftp_data:/home/${APP_USER}/resources
+    command: ${APP_USER}:${APP_PASSWORD}:::resources
+    restart: always
+
+volumes:
+  sftp_data:
+    driver: local

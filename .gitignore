@@ -1,9 +1,15 @@
+### stock-price-prediction-bot ###
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 hidden.yml
 .env
+
+### stock-price-prediction-app ###
+app/hidden.ini
+app/resources/
+.venv/
 
 ### STS ###
 .apt_generated
