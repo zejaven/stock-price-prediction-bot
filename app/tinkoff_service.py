@@ -260,7 +260,7 @@ def predict(ticker, figi, model, df_stock, scaler, chatId):
     # Get the actual closing price for the current day
     actual_price = get_current_day_price(figi)
 
-    response = f'Here\'s the prediction for ticker: {ticker}\n'
+    response = f'Here\'s the prediction for ticker {ticker}:\n'
     response += f'Predicted closing price for the current day: {current_day_prediction}\n'
 
     # Calculate and print prediction accuracy for the current day
