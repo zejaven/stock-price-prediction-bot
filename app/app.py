@@ -9,7 +9,7 @@ executor = ThreadPoolExecutor(2)
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json(force=True)
-    executor.submit(make_prediction, data['ticker'], data['chatId'])
+    executor.submit(make_prediction, data['ticker'], data['intervalChoice'], data['chatId'])
     return jsonify({"message": "Starting prediction process for ticker " + data['ticker'] + "..."})
 
 

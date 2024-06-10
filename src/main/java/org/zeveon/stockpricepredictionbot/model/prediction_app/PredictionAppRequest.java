@@ -13,4 +13,5 @@ import lombok.*;
 public class PredictionAppRequest {
     private Long chatId;
     private String ticker;
+    private String intervalChoice;
 }

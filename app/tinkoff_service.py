@@ -14,7 +14,6 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.layers import Dense, Dropout, LSTM, Bidirectional
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import load_model
-from tensorflow.keras.optimizers import Adam
 from tinkoff.invest import Client, CandleInterval
 
 # Read the API token and Bot url from the configuration files
@@ -26,77 +25,88 @@ BOT_URL = os.getenv('BOT_URL', config['DEFAULT']['BOT_URL'])
 RESOURCE_PATH = os.getenv('RESOURCE_PATH', config['DEFAULT']['RESOURCE_PATH'])
 
 
-def make_prediction(ticker, chatId):
+def make_prediction(ticker, intervalChoice, chatId):
     # Define the start and end dates for historical data retrieval
-    start_date = datetime.now() - timedelta(days=365 * 5)
     end_date = datetime.now()
+    if intervalChoice == 'hour':
+        start_date = end_date - timedelta(hours=1825)
+        interval = CandleInterval.CANDLE_INTERVAL_HOUR
+    elif intervalChoice == 'day':
+        start_date = end_date - timedelta(days=365 * 5)
+        interval = CandleInterval.CANDLE_INTERVAL_DAY
+    else:
+        requests.post(BOT_URL, json={
+            "chatId": chatId,
+            "text": "Invalid choice. Please enter 'hour' or 'day'."
+        })
+        raise ValueError("Invalid choice. Please enter 'hour' or 'day'.")
+
     iso_start_date = start_date.date().isoformat()
     iso_end_date = end_date.date().isoformat()
 
-    file_folder, filename, figi = get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, chatId)
+    file_folder, filename, figi = get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interval, intervalChoice, chatId)
     df_stock, scaler, scaled_data, window_size, x, y = data_preprocessing(ticker, file_folder, filename, chatId)
-    model, x_test, y_test, history, evaluated = training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId)
+    model, x_test, y_test, history, evaluated = training(ticker, iso_start_date, iso_end_date, file_folder, x, y, intervalChoice, chatId)
     if not evaluated:
-        evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, chatId)
-    predict(ticker, figi, model, df_stock, scaler, chatId)
+        evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, intervalChoice, chatId)
+    predict(ticker, model, df_stock, scaler, intervalChoice, chatId)
 
 
-def get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, chatId):
+def get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interval, intervalChoice, chatId):
     # Get available tickers
     available_tickers = get_available_tickers()
 
     # Check if the ticker is available
     if ticker not in available_tickers:
+        requests.post(BOT_URL, json={
+            "chatId": chatId,
+            "text": "Ticker not found. Please check the ticker symbol and try again."
+        })
         raise ValueError("Ticker not found. Please check the ticker symbol and try again.")
 
     # Get FIGI for the selected ticker
     figi = get_figi(ticker)
 
-    file_label = 'Dataframe'
+    file_label = 'Dataframe' + '_' + intervalChoice
     filename = file_label + '_' + iso_start_date + '_' + iso_end_date + '.csv'
     file_folder = RESOURCE_PATH + '/' + ticker
     file_path = file_folder + '/' + filename
     if os.path.exists(file_path):
         requests.post(BOT_URL, json={
             "chatId": chatId,
-            "text": 'Taking historical data from the storage for ' + ticker + ': ' + filename
+            "text": 'Taking historical data from the storage for ' + ticker
         })
         return file_folder, filename, figi
     else:
-        if os.path.exists(file_folder):
-            for fname in os.listdir(file_folder):
-                if fname.startswith(file_label):
-                    fpath = os.path.join(file_folder, fname)
-                    os.remove(fpath)
-                    break
+        remove_old_file(file_folder, file_label)
 
         # Retrieve historical price data for the selected ticker
-        data = []
-        with Client(API_TOKEN) as client:
-            candles = list(client.get_all_candles(
-                figi=figi,
-                from_=start_date,
-                to=end_date,
-                interval=CandleInterval.CANDLE_INTERVAL_DAY
-            ))
-            for candle in candles:
-                data.append({
-                    'DateTime': candle.time,
-                    'Open': candle.open.units + candle.open.nano / 1e9,
-                    'Close': candle.close.units + candle.close.nano / 1e9,
-                    'High': candle.high.units + candle.high.nano / 1e9,
-                    'Low': candle.low.units + candle.low.nano / 1e9,
-                    'Volume': candle.volume,
-                })
+        df_stock = get_historical_data(figi, start_date, end_date, interval)
+        if df_stock.empty:
+            requests.post(BOT_URL, json={
+                "chatId": chatId,
+                "text": f"Data for '{intervalChoice}' interval not found"
+            })
+            raise ValueError(f"Data for '{intervalChoice}' interval not found")
 
-        # Create a DataFrame from the retrieved data
-        df_stock = pd.DataFrame(data)
+        # Check if the data is less than 5 years
+        if len(df_stock) < 365 * 5:
+            requests.post(BOT_URL, json={
+                "chatId": chatId,
+                "text": "The historical data is less than 5 years. Prediction may not be accurate."
+            })
+        else:
+            requests.post(BOT_URL, json={
+                "chatId": chatId,
+                "text": "Data is sufficient for prediction."
+            })
+
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         df_stock.to_csv(file_path)
 
         requests.post(BOT_URL, json={
             "chatId": chatId,
-            "text": 'Saved historical data for ' + ticker + ': ' + filename
+            "text": 'Saved historical data for ' + ticker
         })
 
         return file_folder, filename, figi
@@ -135,8 +145,8 @@ def data_preprocessing(ticker, file_folder, filename, chatId):
     return df_stock, scaler, scaled_data, window_size, np.array(x), np.array(y)
 
 
-def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
-    file_label = 'LSTM_Model'
+def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, intervalChoice, chatId):
+    file_label = 'LSTM_Model' + '_' + intervalChoice
     filename = file_label + '_' + iso_start_date + '_' + iso_end_date + '.h5'
     file_path = file_folder + '/' + filename
 
@@ -148,12 +158,7 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
         model = load_model(file_path)
         return model, None, None, None, True
     else:
-        if os.path.exists(file_folder):
-            for fname in os.listdir(file_folder):
-                if fname.startswith(file_label):
-                    fpath = os.path.join(file_folder, fname)
-                    os.remove(fpath)
-                    break
+        remove_old_file(file_folder, file_label)
         requests.post(BOT_URL, json={
             "chatId": chatId,
             "text": 'Training model for ' + ticker
@@ -195,7 +200,7 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
         return model, x_test, y_test, history, False
 
 
-def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, chatId):
+def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, intervalChoice, chatId):
     # Evaluate the model
     mse, mae, r2, mape, y_pred = evaluate_model(model, x_test, y_test)
 
@@ -206,15 +211,10 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
     # Calculate correlation
     correlation, _ = pearsonr(y_test, y_pred)
 
-    file_label = 'Metrics'
+    file_label = 'Metrics' + '_' + intervalChoice
     filename = file_label + '_' + iso_start_date + '_' + iso_end_date + '.txt'
     file_path = file_folder + '/' + filename
-    if os.path.exists(file_folder):
-        for fname in os.listdir(file_folder):
-            if fname.startswith(file_label):
-                fpath = os.path.join(file_folder, fname)
-                os.remove(fpath)
-                break
+    remove_old_file(file_folder, file_label)
 
     # Open the file and write the metrics
     with open(file_path, 'w') as file:
@@ -224,8 +224,10 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
         file.write(f'Mean Absolute Percentage Error: {mape * 100:.2f}%\n')
         file.write(f'Correlation between actual and predicted prices: {correlation:.2f}\n')
 
-    loss_file_label = 'Loss'
+    loss_file_label = 'Loss' + '_' + intervalChoice
     loss_filename = loss_file_label + '_' + iso_start_date + '_' + iso_end_date + '.png'
+    remove_old_file(file_folder, loss_file_label)
+
     # Plot the training and validation loss
     plt.figure(figsize=(16, 4))
     plt.plot(history.history['loss'], label='Training Loss')
@@ -235,8 +237,10 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
     plt.legend()
     plt.savefig(file_folder + '/' + loss_filename)
 
-    prices_file_label = 'Prices'
+    prices_file_label = 'Prices' + '_' + intervalChoice
     prices_filename = prices_file_label + '_' + iso_start_date + '_' + iso_end_date + '.png'
+    remove_old_file(file_folder, prices_file_label)
+
     # Plot the actual vs predicted prices for the test set
     plt.figure(figsize=(16, 4))
     plt.plot(df_stock.index[-len(y_test):], scaler.inverse_transform(np.concatenate((np.zeros((y_test.shape[0], scaled_data.shape[1]-1)), y_test.reshape(-1, 1)), axis=1))[:, -1], color='blue', label='Actual Prices')
@@ -248,32 +252,30 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
 
     requests.post(BOT_URL, json={
         "chatId": chatId,
-        "text": 'Evaluation metrics for ' + ticker + ' saved to folder: ' + file_folder
+        "text": 'Evaluation metrics for ' + ticker + ' saved to storage'
     })
 
 
-def predict(ticker, figi, model, df_stock, scaler, chatId):
+def predict(ticker, model, df_stock, scaler, intervalChoice, chatId):
     # Predict the closing price for the current day
-    current_day_prediction = round(predict_current_day(df_stock, model, df_stock.values, scaler, window_size=5), 2)
+    current_interval_prediction = round(predict_current_interval(df_stock, model, df_stock.values, scaler, window_size=5), 2)
 
     # Get the actual closing price for the current day
-    actual_price = get_current_day_price(figi)
+    actual_price = get_current_interval_price_from_df(df_stock, intervalChoice)
 
     response = f'Here\'s the prediction for ticker {ticker}:\n'
-    response += f'Predicted closing price for the current day: {current_day_prediction}\n'
+    response += f'Predicted closing price for the current {intervalChoice}: {current_interval_prediction}\n'
 
-    # Calculate and print prediction accuracy for the current day
-    if actual_price:
+    # Print actual closing price for the current interval
+    if actual_price is not None:
         actual_price = round(actual_price, 2)
-        response += f'Actual closing price for the current day: {actual_price}\n'
-        accuracy_current_day = round(100 - abs((actual_price - current_day_prediction) / actual_price) * 100, 2)
-        response += f'Prediction accuracy for the current day: {accuracy_current_day}%\n'
+        response += f'Actual closing price for the current {intervalChoice}: {actual_price}\n'
     else:
-        response += 'Failed to retrieve the actual closing price for the current day.\n'
+        response += 'Failed to retrieve the actual closing price for the current interval.\n'
 
     # Predict the closing price for the next day
-    next_day_prediction = round(predict_next_day(df_stock, current_day_prediction, model, df_stock.values, scaler), 2)
-    response += f'Predicted closing price for the next day: {next_day_prediction}\n'
+    next_interval_prediction = round(predict_next_interval(df_stock, current_interval_prediction, model, df_stock.values, scaler), 2)
+    response += f'Predicted closing price for the next {intervalChoice}: {next_interval_prediction}\n'
 
     requests.post(BOT_URL, json={
         "chatId": chatId,
@@ -299,6 +301,28 @@ def get_figi(ticker):
     raise ValueError("Ticker not found")
 
 
+# Function to retrieve historical price data
+def get_historical_data(figi, start_date, end_date, interval):
+    data = []
+    with Client(API_TOKEN) as client:
+        candles = list(client.get_all_candles(
+            figi=figi,
+            from_=start_date,
+            to=end_date,
+            interval=interval
+        ))
+        for candle in candles:
+            data.append({
+                'DateTime': candle.time,
+                'Open': candle.open.units + candle.open.nano / 1e9,
+                'Close': candle.close.units + candle.close.nano / 1e9,
+                'High': candle.high.units + candle.high.nano / 1e9,
+                'Low': candle.low.units + candle.low.nano / 1e9,
+                'Volume': candle.volume,
+            })
+    return pd.DataFrame(data)
+
+
 # Function to evaluate the model
 def evaluate_model(model, x_test, y_test):
     y_pred = model.predict(x_test)
@@ -309,8 +333,8 @@ def evaluate_model(model, x_test, y_test):
     return mse, mae, r2, mape, y_pred
 
 
-# Function to predict the closing price for the current day
-def predict_current_day(df_stock, model, data, scaler, window_size=5):
+# Function to predict the closing price for the current interval
+def predict_current_interval(df_stock, model, data, scaler, window_size=5):
     last_window = data[-window_size:]
     last_window_df = pd.DataFrame(last_window, columns=df_stock.columns)
     last_window_scaled = scaler.transform(last_window_df)
@@ -320,11 +344,11 @@ def predict_current_day(df_stock, model, data, scaler, window_size=5):
     return predicted[0]
 
 
-# Function to predict the closing price for the next day
-def predict_next_day(df_stock, current_day_prediction, model, data, scaler, window_size=5):
-    # Add the current day's predicted price to the data
+# Function to predict the closing price for the next interval
+def predict_next_interval(df_stock, current_interval_prediction, model, data, scaler, window_size=5):
+    # Add the current interval's predicted price to the data
     last_window = data[-window_size:].copy()
-    last_window[-1][-1] = current_day_prediction
+    last_window[-1][-1] = current_interval_prediction
     last_window_df = pd.DataFrame(last_window, columns=df_stock.columns)
     last_window_scaled = scaler.transform(last_window_df)
     last_window_scaled = np.expand_dims(last_window_scaled, axis=0)
@@ -333,17 +357,23 @@ def predict_next_day(df_stock, current_day_prediction, model, data, scaler, wind
     return predicted[0]
 
 
-# Function to get the actual closing price for the current day
-def get_current_day_price(figi):
-    today = datetime.now().date()
-    tomorrow = today + timedelta(days=1)
-    with Client(API_TOKEN) as client:
-        candles = list(client.get_all_candles(
-            figi=figi,
-            from_=datetime.combine(today, datetime.min.time()),  # start of the day
-            to=datetime.combine(tomorrow, datetime.min.time()),  # start of the next day
-            interval=CandleInterval.CANDLE_INTERVAL_DAY
-        ))
-        if candles:
-            return candles[-1].close.units + candles[-1].close.nano / 1e9
-    return None
+# Function to get the actual closing price for the current interval from the dataframe
+def get_current_interval_price_from_df(df, interval_choice):
+    if interval_choice == 'hour':
+        current_time = df.index[-1].floor('H')
+    elif interval_choice == 'day':
+        current_time = df.index[-1].floor('D')
+    else:
+        raise ValueError("Invalid interval choice")
+
+    current_price = df.loc[current_time]['Close']
+    return current_price
+
+
+def remove_old_file(file_folder, file_label):
+    if os.path.exists(file_folder):
+        for fname in os.listdir(file_folder):
+            if fname.startswith(file_label):
+                fpath = os.path.join(file_folder, fname)
+                os.remove(fpath)
+                break

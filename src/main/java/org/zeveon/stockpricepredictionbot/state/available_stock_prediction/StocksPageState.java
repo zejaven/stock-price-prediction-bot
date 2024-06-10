@@ -7,10 +7,7 @@ import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.context.ChatContext;
 import org.zeveon.stockpricepredictionbot.controller.UpdateController;
 import org.zeveon.stockpricepredictionbot.model.CallbackCommand;
-import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppRequest;
 import org.zeveon.stockpricepredictionbot.state.BotState;
-import org.zeveon.stockpricepredictionbot.state.Final;
-import org.zeveon.stockpricepredictionbot.state.Variable;
 import org.zeveon.stockpricepredictionbot.state.handler.CallbackQueryHandler;
 
 import java.util.Map;
@@ -24,7 +21,7 @@ import static org.zeveon.stockpricepredictionbot.util.TinkoffMessageUtil.LIMIT;
  * @author Zejaven
  */
 @Slf4j
-public class StocksPageState extends BotState implements CallbackQueryHandler, Final {
+public class StocksPageState extends BotState implements CallbackQueryHandler {
 
     private static final String BASIC_MESSAGE = """
             Here are available stocks for prediction:
@@ -37,8 +34,8 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
     @Override
     public void handleCallbackQuery(CallbackQuery callbackQuery) {
         var command = callbackQuery.getData();
-        try {
-            switch (CallbackCommand.fromText(command)) {
+        CallbackCommand.fromText(command).ifPresentOrElse(c -> {
+            switch (c) {
                 case LEFT -> {
                     var page = (Integer) getStateVariable(PAGE);
                     if (page > 1) {
@@ -57,14 +54,10 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
                 case PAGE -> bot.nextState(new StocksNavigationState(updateController, bot), BASIC);
                 case SEARCH -> bot.nextState(new StocksSearchState(updateController, bot), BASIC);
             }
-        } catch (IllegalArgumentException e) {
-            var response = updateController.predict(PredictionAppRequest.builder()
-                    .chatId(ChatContext.getInstance().getChatId())
-                    .ticker(command)
-                    .build());
-            updateStateVariable(MESSAGE, response.getMessage());
-            bot.nextState(null, null);
-        }
+        }, () -> {
+            bot.putSessionVariable(TICKER, command);
+            bot.nextState(new ChooseIntervalState(updateController, bot), BASIC);
+        });
     }
 
     @Override
@@ -78,17 +71,5 @@ public class StocksPageState extends BotState implements CallbackQueryHandler, F
         return Map.of(
                 BASIC, createMessage(chatId, BASIC_MESSAGE, stocksKeyboardMarkup.getLeft())
         );
-    }
-
-    @Override
-    public SendMessage complete() {
-        var chatId = ChatContext.getInstance().getChatId();
-        var message = (String) getStateVariable(MESSAGE);
-        return createMessage(chatId, message);
-    }
-
-    @Override
-    protected boolean isVariableUpdatable(Variable key) {
-        return key == MESSAGE;
     }
 }
