@@ -18,7 +18,8 @@ public enum CallbackCommand {
     PAGE("/page"),
     SEARCH("/search"),
     HOUR("/hour"),
-    DAY("/day");
+    DAY("/day"),
+    BACK("/back");
 
     private final String text;
 

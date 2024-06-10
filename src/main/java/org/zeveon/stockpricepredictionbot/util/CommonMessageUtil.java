@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
+import static org.zeveon.stockpricepredictionbot.model.CallbackCommand.BACK;
 
 /**
  * @author Zejaven
@@ -31,6 +32,12 @@ public class CommonMessageUtil {
         return createButtonsKeyboardMarkup(singletonList(buttons));
     }
 
+    public static InlineKeyboardMarkup createVerticalAndBackButtonKeyboardMarkup(List<InlineKeyboardButton> buttons) {
+        var newButtons = new ArrayList<>(buttons);
+        newButtons.add(createBackButton());
+        return createVerticalButtonKeyboardMarkup(newButtons);
+    }
+
     public static InlineKeyboardMarkup createVerticalButtonKeyboardMarkup(List<InlineKeyboardButton> buttons) {
         var inlineKeyboardMarkup = new InlineKeyboardMarkup();
         var buttonsTable = new ArrayList<List<InlineKeyboardButton>>();
@@ -43,6 +50,10 @@ public class CommonMessageUtil {
         var inlineKeyboardMarkup = new InlineKeyboardMarkup();
         inlineKeyboardMarkup.setKeyboard(buttonsTable);
         return inlineKeyboardMarkup;
+    }
+
+    public static InlineKeyboardButton createBackButton() {
+        return createButton("Back", BACK.getText());
     }
 
     public static InlineKeyboardButton createButton(String text, String callbackData) {
