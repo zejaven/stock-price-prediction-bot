@@ -34,10 +34,10 @@ def make_prediction(ticker, chatId):
     iso_end_date = end_date.date().isoformat()
 
     file_folder, filename, figi = get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, chatId)
-    df_stock, scaler, window_size, x, y = data_preprocessing(ticker, file_folder, filename, chatId)
+    df_stock, scaler, scaled_data, window_size, x, y = data_preprocessing(ticker, file_folder, filename, chatId)
     model, x_test, y_test, history, evaluated = training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId)
     if not evaluated:
-        evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, chatId)
+        evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, chatId)
     predict(ticker, figi, model, df_stock, scaler, chatId)
 
 
@@ -111,8 +111,8 @@ def data_preprocessing(ticker, file_folder, filename, chatId):
     df_stock['DateTime'] = pd.to_datetime(df_stock['DateTime'])
     df_stock.set_index('DateTime', inplace=True)
 
-    # Filter out the last data point (if necessary)
-    df_stock = df_stock[df_stock.index < df_stock.index.max()]
+    # Exclude the latest data point
+    df_stock = df_stock.iloc[:-1]
 
     # Calculate moving averages
     df_stock['ma_5'] = df_stock['Close'].rolling(window=5).mean()
@@ -127,13 +127,12 @@ def data_preprocessing(ticker, file_folder, filename, chatId):
     # Prepare the data for the LSTM model
     x = []
     y = []
-
     window_size = 5
     for i in range(window_size, len(scaled_data)):
         x.append(scaled_data[i - window_size:i])
         y.append(scaled_data[i, 2])
 
-    return df_stock, scaler, window_size, np.array(x), np.array(y)
+    return df_stock, scaler, scaled_data, window_size, np.array(x), np.array(y)
 
 
 def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
@@ -173,7 +172,7 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
         model.add(Dense(1, activation='linear'))
 
         # Compile the model
-        model.compile(optimizer=Adam(learning_rate=1e-4), loss='mse')
+        model.compile(optimizer='adam', loss='mse')
 
         # Define callbacks for early stopping and learning rate reduction
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
@@ -196,7 +195,7 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, chatId):
         return model, x_test, y_test, history, False
 
 
-def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, chatId):
+def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, chatId):
     # Evaluate the model
     mse, mae, r2, mape, y_pred = evaluate_model(model, x_test, y_test)
 
@@ -240,8 +239,8 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
     prices_filename = prices_file_label + '_' + iso_start_date + '_' + iso_end_date + '.png'
     # Plot the actual vs predicted prices for the test set
     plt.figure(figsize=(16, 4))
-    plt.plot(df_stock.index[-len(y_test):], y_test, color='blue', label='Actual Prices')
-    plt.plot(df_stock.index[-len(y_test):], y_pred, color='red', linestyle='--', label='Predicted Prices')
+    plt.plot(df_stock.index[-len(y_test):], scaler.inverse_transform(np.concatenate((np.zeros((y_test.shape[0], scaled_data.shape[1]-1)), y_test.reshape(-1, 1)), axis=1))[:, -1], color='blue', label='Actual Prices')
+    plt.plot(df_stock.index[-len(y_test):], scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], scaled_data.shape[1]-1)), y_pred.reshape(-1, 1)), axis=1))[:, -1], color='red', linestyle='--', label='Predicted Prices')
     plt.xlabel('Date')
     plt.ylabel('Price')
     plt.legend()
