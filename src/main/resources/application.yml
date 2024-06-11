@@ -5,7 +5,7 @@ spring:
     import: classpath:hidden.yml
 
 stock-price-prediction-bot:
-  name: StockPricePredictionBot
+  name: MITStockPricePredictionBot
   video-path: src/main/resources/videos
   app:
     base-url: http://localhost:5000

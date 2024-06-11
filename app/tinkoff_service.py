@@ -46,7 +46,7 @@ def make_prediction(ticker, intervalChoice, chatId):
     iso_end_date = end_date.date().isoformat()
 
     file_folder, filename, figi = get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interval, intervalChoice, chatId)
-    df_stock, scaler, scaled_data, window_size, x, y = data_preprocessing(ticker, file_folder, filename, chatId)
+    df_stock, scaler, scaled_data, window_size, x, y = data_preprocessing(ticker, file_folder, filename, intervalChoice, start_date, chatId)
     model, x_test, y_test, history, evaluated = training(ticker, iso_start_date, iso_end_date, file_folder, x, y, intervalChoice, chatId)
     if not evaluated:
         evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, intervalChoice, chatId)
@@ -90,31 +90,6 @@ def get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interva
             })
             raise ValueError(f"Data for '{intervalChoice}' interval not found")
 
-        if intervalChoice == 'day':
-            td = timedelta(days=8)
-            warning = '5 years'
-        elif intervalChoice == 'hour':
-            td = timedelta(hours=40)
-            warning = '2.5 months'
-        else:
-            requests.post(BOT_URL, json={
-                "chatId": chatId,
-                "text": f"Such interval is not configured: '{intervalChoice}'"
-            })
-            raise ValueError(f"Such interval is not configured: '{intervalChoice}'")
-
-        # Check if the data is less than configured interval units
-        if df_stock['DateTime'][0] <= pytz.utc.localize(start_date) + td:
-            requests.post(BOT_URL, json={
-                "chatId": chatId,
-                "text": "Data is sufficient for prediction."
-            })
-        else:
-            requests.post(BOT_URL, json={
-                "chatId": chatId,
-                "text": f"The historical data is less than {warning}. Prediction may not be accurate."
-            })
-
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         df_stock.to_csv(file_path)
 
@@ -126,7 +101,7 @@ def get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interva
         return file_folder, filename, figi
 
 
-def data_preprocessing(ticker, file_folder, filename, chatId):
+def data_preprocessing(ticker, file_folder, filename, intervalChoice, start_date, chatId):
     requests.post(BOT_URL, json={
         "chatId": chatId,
         "text": 'Preprocessing data for ' + ticker
@@ -134,6 +109,31 @@ def data_preprocessing(ticker, file_folder, filename, chatId):
     df_stock = pd.read_csv(file_folder + '/' + filename)
     df_stock['DateTime'] = pd.to_datetime(df_stock['DateTime'])
     df_stock.set_index('DateTime', inplace=True)
+
+    if intervalChoice == 'day':
+        td = timedelta(days=8)
+        warning = '5 years'
+    elif intervalChoice == 'hour':
+        td = timedelta(hours=40)
+        warning = '2.5 months'
+    else:
+        requests.post(BOT_URL, json={
+            "chatId": chatId,
+            "text": f"Such interval is not configured: '{intervalChoice}'"
+        })
+        raise ValueError(f"Such interval is not configured: '{intervalChoice}'")
+
+    # Check if the data is less than configured interval units
+    if df_stock.index[0] <= pytz.utc.localize(start_date) + td:
+        requests.post(BOT_URL, json={
+            "chatId": chatId,
+            "text": "Data is sufficient for prediction"
+        })
+    else:
+        requests.post(BOT_URL, json={
+            "chatId": chatId,
+            "text": f"The historical data is less than {warning}. Prediction may not be accurate"
+        })
 
     # Exclude the latest data point
     df_stock = df_stock.iloc[:-1]
@@ -167,7 +167,7 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, intervalCh
     if os.path.exists(file_path):
         requests.post(BOT_URL, json={
             "chatId": chatId,
-            "text": 'Taking trained model from the storage for ' + ticker + ': ' + filename
+            "text": 'Taking trained model from the storage for ' + ticker
         })
         model = load_model(file_path)
         return model, None, None, None, True
