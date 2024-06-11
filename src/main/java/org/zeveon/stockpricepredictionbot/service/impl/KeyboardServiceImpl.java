@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.zeveon.stockpricepredictionbot.util.TinkoffMessageUtil.buildStocksKeyboard;
 
 /**
@@ -28,6 +30,6 @@ public class KeyboardServiceImpl implements KeyboardService {
                 .filter(e -> e.getKey().toLowerCase().contains(searchText.toLowerCase())
                         || e.getValue().toLowerCase().contains(searchText.toLowerCase()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
-        return Pair.of(buildStocksKeyboard(availableTickers, page), availableTickers.size());
+        return Pair.of(buildStocksKeyboard(availableTickers, page, isNotEmpty(searchText)), availableTickers.size());
     }
 }

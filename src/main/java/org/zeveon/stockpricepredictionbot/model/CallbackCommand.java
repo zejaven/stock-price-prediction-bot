@@ -19,7 +19,8 @@ public enum CallbackCommand {
     SEARCH("/search"),
     HOUR("/hour"),
     DAY("/day"),
-    BACK("/back");
+    BACK("/back"),
+    CANCEL("/cancel");
 
     private final String text;
 

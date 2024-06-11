@@ -10,6 +10,7 @@ import java.util.Map;
 import static java.util.Collections.singletonList;
 import static org.zeveon.stockpricepredictionbot.model.CallbackCommand.*;
 import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createButton;
+import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createCancelButton;
 
 /**
  * @author Zejaven
@@ -18,7 +19,9 @@ public class TinkoffMessageUtil {
 
     public static final Long LIMIT = 10L;
 
-    public static InlineKeyboardMarkup buildStocksKeyboard(Map<String, String> stocks, Integer page) {
+    public static InlineKeyboardMarkup buildStocksKeyboard(
+            Map<String, String> stocks, Integer page, boolean searchTextExists
+    ) {
         var buttons = stocks.entrySet().stream()
                 .skip((page - 1) * LIMIT)
                 .limit(LIMIT)
@@ -31,7 +34,14 @@ public class TinkoffMessageUtil {
                 createButton("->", RIGHT.getText())
         );
         var searchRow = singletonList(createButton("Search", SEARCH.getText()));
-        return buildGridKeyboard(buttons, List.of(navigationRow, searchRow), 1);
+        var extraRows = new ArrayList<List<InlineKeyboardButton>>();
+        extraRows.add(navigationRow);
+        extraRows.add(searchRow);
+        if (searchTextExists) {
+            var cancelRow = singletonList(createCancelButton());
+            extraRows.add(cancelRow);
+        }
+        return buildGridKeyboard(buttons, extraRows, 1);
     }
 
     private static InlineKeyboardMarkup buildGridKeyboard(

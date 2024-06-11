@@ -8,6 +8,7 @@ import org.zeveon.stockpricepredictionbot.context.ChatContext;
 import org.zeveon.stockpricepredictionbot.controller.UpdateController;
 import org.zeveon.stockpricepredictionbot.model.CallbackCommand;
 import org.zeveon.stockpricepredictionbot.state.BotState;
+import org.zeveon.stockpricepredictionbot.state.Variable;
 import org.zeveon.stockpricepredictionbot.state.handler.CallbackQueryHandler;
 
 import java.util.Map;
@@ -53,6 +54,11 @@ public class StocksPageState extends BotState implements CallbackQueryHandler {
                 }
                 case PAGE -> bot.nextState(new StocksNavigationState(updateController, bot), BASIC);
                 case SEARCH -> bot.nextState(new StocksSearchState(updateController, bot), BASIC);
+                case CANCEL -> {
+                    bot.putSessionVariable(SEARCH_TEXT, "");
+                    bot.putSessionVariable(PAGE, 1);
+                    bot.nextState(new StocksPageState(updateController, bot), BASIC);
+                }
             }
         }, () -> {
             bot.putSessionVariable(TICKER, command);
@@ -67,9 +73,14 @@ public class StocksPageState extends BotState implements CallbackQueryHandler {
         var searchText = (String) getStateVariable(SEARCH_TEXT);
         var stocksKeyboardMarkup = updateController.getStocksKeyboard(page, searchText);
         var pageCount = (stocksKeyboardMarkup.getRight() + LIMIT - 1) / LIMIT;
-        bot.putSessionVariable(PAGE_COUNT, pageCount);
+        updateStateVariable(PAGE_COUNT, pageCount);
         return Map.of(
                 BASIC, createMessage(chatId, BASIC_MESSAGE, stocksKeyboardMarkup.getLeft())
         );
+    }
+
+    @Override
+    protected boolean isVariableUpdatable(Variable key) {
+        return key == PAGE_COUNT;
     }
 }

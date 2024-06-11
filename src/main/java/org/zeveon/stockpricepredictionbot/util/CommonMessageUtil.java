@@ -9,6 +9,7 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.zeveon.stockpricepredictionbot.model.CallbackCommand.BACK;
+import static org.zeveon.stockpricepredictionbot.model.CallbackCommand.CANCEL;
 
 /**
  * @author Zejaven
@@ -54,6 +55,10 @@ public class CommonMessageUtil {
 
     public static InlineKeyboardButton createBackButton() {
         return createButton("Back", BACK.getText());
+    }
+
+    public static InlineKeyboardButton createCancelButton() {
+        return createButton("Cancel", CANCEL.getText());
     }
 
     public static InlineKeyboardButton createButton(String text, String callbackData) {
