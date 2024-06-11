@@ -31,6 +31,9 @@ public class ChatContextAspect {
         } else if (update.hasCallbackQuery()) {
             var callbackQuery = update.getCallbackQuery();
             ChatContext.setInstance(callbackQuery.getMessage().getChatId());
+        } else if (update.hasMyChatMember()) {
+            var myChatMember = update.getMyChatMember();
+            ChatContext.setInstance(myChatMember.getChat().getId());
         }
         bot.newSession();
     }

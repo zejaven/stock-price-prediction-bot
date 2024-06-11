@@ -14,6 +14,7 @@ import java.util.Map;
 @AllArgsConstructor
 public enum Command {
 
+    START("/start"),
     HELP("/help"),
     AVAILABLE_STOCKS("/available_stocks");
 

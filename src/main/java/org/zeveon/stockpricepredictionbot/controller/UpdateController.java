@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
+import org.zeveon.stockpricepredictionbot.context.ChatContext;
 import org.zeveon.stockpricepredictionbot.model.Command;
 import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppRequest;
 import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppResponse;
@@ -70,12 +71,16 @@ public class UpdateController {
                 var commandAndInvocation = command.split(AT_SIGN);
                 if (commandAndInvocation.length == 1 || commandAndInvocation[1].equals(bot.getBotUsername())) {
                     switch (Command.fromText(commandAndInvocation[0])) {
+                        case START -> sendResponse(createVideoMessage(chatId, buildVideoResponse(INTRO_1), buildHelpResponse()));
                         case HELP -> sendResponse(createVideoMessage(chatId, buildVideoResponse(INTRO_2), buildHelpResponse()));
                         case AVAILABLE_STOCKS -> processAvailableStocksResponse();
                         default -> sendResponse(createMessage(chatId, buildEmptyResponse()));
                     }
                 }
             }
+        } else if (update.hasMyChatMember()) {
+            var chatId = ChatContext.getInstance().getChatId();
+            sendResponse(createVideoMessage(chatId, buildVideoResponse(INTRO_1), buildHelpResponse()));
         }
     }
 
