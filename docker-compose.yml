@@ -8,6 +8,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     ports:
       - "8080:8080"
+    volumes:
+      - sftp_data:/home/${APP_USER}/resources
     command: ["java", "-jar", "stock-price-prediction-bot.jar"]
 
   stock-price-prediction-app:
