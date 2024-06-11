@@ -1,10 +1,11 @@
 import configparser
 import os
-from datetime import datetime, timedelta
-
 import numpy as np
 import pandas as pd
+import pytz
 import requests
+
+from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
@@ -89,16 +90,29 @@ def get_data(ticker, start_date, end_date, iso_start_date, iso_end_date, interva
             })
             raise ValueError(f"Data for '{intervalChoice}' interval not found")
 
-        # Check if the data is less than 5 years
-        if len(df_stock) < 365 * 5:
+        if intervalChoice == 'day':
+            td = timedelta(days=8)
+            warning = '5 years'
+        elif intervalChoice == 'hour':
+            td = timedelta(hours=40)
+            warning = '2.5 months'
+        else:
             requests.post(BOT_URL, json={
                 "chatId": chatId,
-                "text": "The historical data is less than 5 years. Prediction may not be accurate."
+                "text": f"Such interval is not configured: '{intervalChoice}'"
+            })
+            raise ValueError(f"Such interval is not configured: '{intervalChoice}'")
+
+        # Check if the data is less than configured interval units
+        if df_stock['DateTime'][0] <= pytz.utc.localize(start_date) + td:
+            requests.post(BOT_URL, json={
+                "chatId": chatId,
+                "text": "Data is sufficient for prediction."
             })
         else:
             requests.post(BOT_URL, json={
                 "chatId": chatId,
-                "text": "Data is sufficient for prediction."
+                "text": f"The historical data is less than {warning}. Prediction may not be accurate."
             })
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)

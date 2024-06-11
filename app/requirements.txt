@@ -10,3 +10,4 @@ tensorflow~=2.15.0
 keras~=2.15.0
 scipy~=1.13.1
 matplotlib~=3.9.0
+pytz~=2024.1
