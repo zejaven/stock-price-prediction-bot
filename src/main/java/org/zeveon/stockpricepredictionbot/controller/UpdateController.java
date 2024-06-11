@@ -5,7 +5,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Controller;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -15,6 +17,7 @@ import org.zeveon.stockpricepredictionbot.component.StockPricePredictionBot;
 import org.zeveon.stockpricepredictionbot.model.Command;
 import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppRequest;
 import org.zeveon.stockpricepredictionbot.model.prediction_app.PredictionAppResponse;
+import org.zeveon.stockpricepredictionbot.service.FileService;
 import org.zeveon.stockpricepredictionbot.service.KeyboardService;
 import org.zeveon.stockpricepredictionbot.service.PredictionAppService;
 import org.zeveon.stockpricepredictionbot.state.available_stock_prediction.StocksPageState;
@@ -22,6 +25,7 @@ import org.zeveon.stockpricepredictionbot.state.available_stock_prediction.Stock
 import static org.zeveon.stockpricepredictionbot.state.ConvertKey.BASIC;
 import static org.zeveon.stockpricepredictionbot.state.Variable.PAGE;
 import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createMessage;
+import static org.zeveon.stockpricepredictionbot.util.CommonMessageUtil.createVideoMessage;
 import static org.zeveon.stockpricepredictionbot.util.StringUtil.*;
 
 /**
@@ -33,11 +37,16 @@ public class UpdateController {
 
     private static final String NEW_LINE_TEMPLATE = "%s\n%s";
 
+    private static final String INTRO_1 = "intro.mp4";
+    private static final String INTRO_2 = "intro2.mp4";
+
     private StockPricePredictionBot bot;
 
     private final KeyboardService keyboardService;
 
     private final PredictionAppService predictionAppService;
+
+    private final FileService fileService;
 
     public void registerBot(StockPricePredictionBot stockPricePredictionBot) {
         this.bot = stockPricePredictionBot;
@@ -61,7 +70,7 @@ public class UpdateController {
                 var commandAndInvocation = command.split(AT_SIGN);
                 if (commandAndInvocation.length == 1 || commandAndInvocation[1].equals(bot.getBotUsername())) {
                     switch (Command.fromText(commandAndInvocation[0])) {
-                        case HELP -> sendResponse(createMessage(chatId, buildHelpResponse()));
+                        case HELP -> sendResponse(createVideoMessage(chatId, buildVideoResponse(INTRO_2), buildHelpResponse()));
                         case AVAILABLE_STOCKS -> processAvailableStocksResponse();
                         default -> sendResponse(createMessage(chatId, buildEmptyResponse()));
                     }
@@ -72,6 +81,11 @@ public class UpdateController {
 
     public PredictionAppResponse predict(PredictionAppRequest request) {
         return predictionAppService.predict(request);
+    }
+
+    private InputFile buildVideoResponse(String filename) {
+        var videoFile = fileService.getVideo(filename);
+        return new InputFile(videoFile);
     }
 
     private void processAvailableStocksResponse() {
@@ -93,6 +107,15 @@ public class UpdateController {
     public Message sendResponse(SendMessage message) {
         try {
             return bot.execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Message sendResponse(SendVideo video) {
+        try {
+            return bot.execute(video);
         } catch (TelegramApiException e) {
             e.printStackTrace();
             return null;

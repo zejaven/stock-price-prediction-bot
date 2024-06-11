@@ -1,6 +1,8 @@
 package org.zeveon.stockpricepredictionbot.util;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
@@ -20,6 +22,14 @@ public class CommonMessageUtil {
         var message = new SendMessage();
         message.setChatId(chatId);
         message.setText(text);
+        return message;
+    }
+
+    public static SendVideo createVideoMessage(Long chatId, InputFile inputFile, String text) {
+        var message = new SendVideo();
+        message.setChatId(chatId);
+        message.setVideo(inputFile);
+        message.setCaption(text);
         return message;
     }
 
