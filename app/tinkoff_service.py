@@ -274,18 +274,7 @@ def predict(ticker, model, df_stock, scaler, intervalChoice, chatId):
     # Predict the closing price for the current day
     current_interval_prediction = round(predict_current_interval(df_stock, model, df_stock.values, scaler, window_size=5), 2)
 
-    # Get the actual closing price for the current day
-    actual_price = get_current_interval_price_from_df(df_stock, intervalChoice)
-
     response = f'Here\'s the prediction for ticker {ticker}:\n'
-    response += f'Predicted closing price for the current {intervalChoice}: {current_interval_prediction}\n'
-
-    # Print actual closing price for the current interval
-    if actual_price is not None:
-        actual_price = round(actual_price, 2)
-        response += f'Actual closing price for the current {intervalChoice}: {actual_price}\n'
-    else:
-        response += 'Failed to retrieve the actual closing price for the current interval.\n'
 
     # Predict the closing price for the next day
     next_interval_prediction = round(predict_next_interval(df_stock, current_interval_prediction, model, df_stock.values, scaler), 2)
