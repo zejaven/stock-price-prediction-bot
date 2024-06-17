@@ -287,6 +287,12 @@ def predict(ticker, model, df_stock, scaler, intervalChoice, chatId):
         "chatId": chatId,
         "text": response
     })
+    disclaimer = ('Disclaimer: This information does not constitute individual investment advice.\n'
+                  'PJSC Nostradamus is not responsible for possible losses of the Investor in the event that the Investor decides to carry out a trading operation (transaction) based on recommendations from the chatbot.')
+    requests.post(BOT_URL, json={
+        "chatId": chatId,
+        "text": disclaimer
+    })
 
 
 # Function to get available tickers
