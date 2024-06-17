@@ -215,15 +215,18 @@ def training(ticker, iso_start_date, iso_end_date, file_folder, x, y, intervalCh
 
 
 def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock, x_test, y_test, history, scaler, scaled_data, intervalChoice, chatId):
+    y_pred = model.predict(x_test)
+
+    y_test_reshaped = np.zeros((y_test.shape[0], 9))
+    y_test_reshaped[:, 2] = y_test
+    y_test_original = scaler.inverse_transform(y_test_reshaped)[:, 2]
+
+    y_pred_reshaped = np.zeros((y_pred.shape[0], 9))
+    y_pred_reshaped[:, 2] = y_pred.flatten()
+    y_pred_original = scaler.inverse_transform(y_pred_reshaped)[:, 2]
+
     # Evaluate the model
-    mse, mae, r2, mape, y_pred = evaluate_model(model, x_test, y_test)
-
-    # Ensure y_test and y_pred are 1-dimensional arrays and of the same dtype
-    y_test = np.array(y_test).flatten()
-    y_pred = np.array(y_pred).flatten()
-
-    # Calculate correlation
-    correlation, _ = pearsonr(y_test, y_pred)
+    mse, mae, r2, mape, correlation = evaluate_model(y_test_original, y_pred_original)
 
     file_label = 'Metrics' + '_' + intervalChoice
     filename = file_label + '_' + iso_start_date + '_' + iso_end_date + '.txt'
@@ -257,8 +260,8 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
 
     # Plot the actual vs predicted prices for the test set
     plt.figure(figsize=(16, 4))
-    plt.plot(df_stock.index[-len(y_test):], scaler.inverse_transform(np.concatenate((np.zeros((y_test.shape[0], scaled_data.shape[1]-1)), y_test.reshape(-1, 1)), axis=1))[:, -1], color='blue', label='Actual Prices')
-    plt.plot(df_stock.index[-len(y_test):], scaler.inverse_transform(np.concatenate((np.zeros((y_pred.shape[0], scaled_data.shape[1]-1)), y_pred.reshape(-1, 1)), axis=1))[:, -1], color='red', linestyle='--', label='Predicted Prices')
+    plt.plot(df_stock.index[-len(y_test):], y_test_original, color='blue', label='Actual Prices')
+    plt.plot(df_stock.index[-len(y_test):], y_pred_original, color='red', linestyle='--', label='Predicted Prices')
     plt.xlabel('Date')
     plt.ylabel('Price')
     plt.legend()
@@ -327,13 +330,13 @@ def get_historical_data(figi, start_date, end_date, interval):
 
 
 # Function to evaluate the model
-def evaluate_model(model, x_test, y_test):
-    y_pred = model.predict(x_test)
-    mse = mean_squared_error(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    mape = mean_absolute_percentage_error(y_test, y_pred)
-    return mse, mae, r2, mape, y_pred
+def evaluate_model(true, predicted):
+    mse = mean_squared_error(true, predicted)
+    mae = mean_absolute_error(true, predicted)
+    r2 = r2_score(true, predicted)
+    mape = mean_absolute_percentage_error(true, predicted)
+    correlation = pearsonr(np.array(true).flatten(), np.array(predicted).flatten())[0]
+    return mse, mae, r2, mape, correlation
 
 
 # Function to predict the closing price for the current interval
