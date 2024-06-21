@@ -17,7 +17,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import load_model
 from tinkoff.invest import Client, CandleInterval
 
-from knowledge_base_service import check_r2_score
+from knowledge_base_service import check_r2_score, generate_recommendation
 
 # Read the API token and Bot url from the configuration files
 config = configparser.ConfigParser()
@@ -282,6 +282,9 @@ def predict(ticker, model, df_stock, scaler, intervalChoice, chatId):
     # Predict the closing price for the current day
     current_interval_prediction = round(predict_current_interval(df_stock, model, df_stock.values, scaler, window_size=5), 2)
 
+    # Get the actual closing price for the current day
+    actual_price = get_current_interval_price_from_df(df_stock, intervalChoice)
+
     response = f'Here\'s the prediction for ticker {ticker}:\n'
 
     # Predict the closing price for the next day
@@ -292,6 +295,9 @@ def predict(ticker, model, df_stock, scaler, intervalChoice, chatId):
         "chatId": chatId,
         "text": response
     })
+
+    generate_recommendation(df_stock, actual_price, next_interval_prediction, BOT_URL, RESOURCE_PATH, chatId)
+
     disclaimer = ('Disclaimer: This information does not constitute individual investment advice.\n'
                   'PJSC Nostradamus is not responsible for possible losses of the Investor in the event that the Investor decides to carry out a trading operation (transaction) based on recommendations from the chatbot.')
     requests.post(BOT_URL, json={

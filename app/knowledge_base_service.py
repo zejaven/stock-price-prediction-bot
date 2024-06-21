@@ -1,3 +1,4 @@
+import numpy as np
 import rdflib
 import requests
 
@@ -50,3 +51,36 @@ def check_r2_score(r2, bot_url, resource_path, admin_chat_id, ticker, interval_c
                 }}
             """)
             knowledge_base.serialize(destination=f'{resource_path}/knowledge_base/knowledgebase.n3')
+
+
+def generate_recommendation(df_stock, actual_price, next_interval_prediction, bot_url, resource_path, chat_id):
+    g = rdflib.Graph()
+    rule_base = g.parse(f'{resource_path}/knowledge_base/rulebase.n3', format='text/n3')
+    knowledge_base = g.parse(f'{resource_path}/knowledge_base/knowledgebase.n3', format='text/n3')
+
+    df_stock['Returns'] = np.log(df_stock['Close'] / df_stock['Close'].shift(1))
+    volatility = df_stock['Returns'].std()
+    diff = next_interval_prediction / actual_price - 1
+
+    positive_price_change = diff > 0
+    exceeds_volatility = abs(diff) > volatility
+
+    recommendation_query = f"""
+        SELECT ?description
+        WHERE {{
+            ?rec a class:Recommendation ;
+                 prop:exceedsVolatility "{str(exceeds_volatility).lower()}"^^xsd:boolean ;
+                 prop:description ?description .
+            OPTIONAL {{ ?rec prop:hasPositivePriceChange ?hasPositivePriceChange . }}
+            FILTER (!BOUND(?hasPositivePriceChange) || ?hasPositivePriceChange = "{str(positive_price_change).lower()}"^^xsd:boolean)
+        }}
+        """
+
+    recommendation = None
+    for row in g.query(recommendation_query):
+        recommendation = str(row.description)
+
+    requests.post(bot_url, json={
+        "chatId": chat_id,
+        "text": recommendation
+    })
