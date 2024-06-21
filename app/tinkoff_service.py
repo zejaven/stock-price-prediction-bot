@@ -1,11 +1,11 @@
 import configparser
 import os
+from datetime import datetime, timedelta
+
 import numpy as np
 import pandas as pd
 import pytz
 import requests
-
-from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
@@ -17,6 +17,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import load_model
 from tinkoff.invest import Client, CandleInterval
 
+from knowledge_base_service import check_r2_score
+
 # Read the API token and Bot url from the configuration files
 config = configparser.ConfigParser()
 config.read(['config.ini', 'hidden.ini'])
@@ -24,6 +26,7 @@ config.read(['config.ini', 'hidden.ini'])
 API_TOKEN = config['DEFAULT']['API_TOKEN']
 BOT_URL = os.getenv('BOT_URL', config['DEFAULT']['BOT_URL'])
 RESOURCE_PATH = os.getenv('RESOURCE_PATH', config['DEFAULT']['RESOURCE_PATH'])
+ADMIN_CHAT_ID = config['DEFAULT']['ADMIN_CHAT_ID']
 
 
 def make_prediction(ticker, intervalChoice, chatId):
@@ -240,6 +243,8 @@ def evaluate(ticker, iso_start_date, iso_end_date, file_folder, model, df_stock,
         file.write(f'R^2 Score: {r2:.2f}\n')
         file.write(f'Mean Absolute Percentage Error: {mape * 100:.2f}%\n')
         file.write(f'Correlation between actual and predicted prices: {correlation:.2f}\n')
+
+    check_r2_score(r2, BOT_URL, RESOURCE_PATH, ADMIN_CHAT_ID, ticker, intervalChoice)
 
     loss_file_label = 'Loss' + '_' + intervalChoice
     loss_filename = loss_file_label + '_' + iso_start_date + '_' + iso_end_date + '.png'

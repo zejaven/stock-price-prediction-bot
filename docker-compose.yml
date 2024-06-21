@@ -17,6 +17,7 @@ services:
     environment:
       - BOT_URL=http://stock-price-prediction-bot:8080/api/prediction-bot/message
       - RESOURCE_PATH=/home/${APP_USER}/resources
+      - APP_USER=${APP_USER}
     ports:
       - "5000:5000"
     volumes:

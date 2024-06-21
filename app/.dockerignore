@@ -1,3 +1,5 @@
 .idea/
 .venv/
 resources/
+!resources/knowledge_base/knowledgebase.n3
+!resources/knowledge_base/rulebase.n3

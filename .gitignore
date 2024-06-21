@@ -9,6 +9,7 @@ hidden.yml
 ### stock-price-prediction-app ###
 app/hidden.ini
 app/resources/
+!app/resources/knowledge_base/
 .venv/
 
 ### STS ###
