@@ -1,0 +1,299 @@
+@prefix class: <URN:classes:> .
+@prefix element: <URN:elements:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prop: <URN:prop:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+
+element:BuyStocks a class:Recommendation ;
+    prop:description "Personal recommendation:\nBuy stocks, as the next interval price will be higher and the expected return is higher than volatility." ;
+    prop:exceedsVolatility true ;
+    prop:hasPositivePriceChange true .
+
+element:KeepStocks a class:Recommendation ;
+    prop:description "Personal recommendation:\nKeep stocks, as the expected change is within the volatility range." ;
+    prop:exceedsVolatility false .
+
+element:SellStocks a class:Recommendation ;
+    prop:description "Personal recommendation:\nSell stocks, as the next interval price will be lower and the expected loss is higher than volatility." ;
+    prop:exceedsVolatility true ;
+    prop:hasPositivePriceChange false .
+
+
+# 0th level
+
+# Functions
+element:A0 a class:Function ;
+    rdfs:label "Stock Price Prediction" ;
+    prop:hasInput element:I1, element:I2 ;
+    prop:hasKPI element:C, element:MAE, element:MAPE, element:MSE, element:R2S ;
+    prop:hasOutput element:O1, element:O2 ;
+    prop:hasRequirement element:KC, element:KML, element:KOA, element:ML, element:MMS, element:MPL, element:PCC, element:PY, element:RW, element:TIA, element:TTS .
+
+# Input / Output
+element:I1 a class:DataFlow ;
+    rdfs:label "Ticker" .
+element:I2 a class:DataFlow ;
+    rdfs:label "API Token" .
+element:O1 a class:DataFlow ;
+    rdfs:label "Evaluation metrics" .
+element:O2 a class:DataFlow ;
+    rdfs:label "Next interval prediction" .
+
+# KPIs
+element:C a class:KPI ;
+    rdfs:label "Correlation between actual and predicted prices" .
+element:MAE a class:KPI ;
+    rdfs:label "Mean Absolute Error" .
+element:MAPE a class:KPI ;
+    rdfs:label "Mean Absolute Percentage Error" .
+element:MSE a class:KPI ;
+    rdfs:label "Mean Squared Error" .
+element:R2S a class:KPI ;
+    rdfs:label "R Squared Score" ;
+    prop:hasSuccessfulThreshold "0.8"^^xsd:float ;
+    prop:hasTheWorstValue "0.8"^^xsd:float .
+
+# Requirements
+element:KC a class:Requirement ;
+    rdfs:label "Keras callbacks" .
+element:KML a class:Requirement ;
+    rdfs:label "Keras models and layers" .
+element:KOA a class:Requirement ;
+    rdfs:label "Keras optimizer, Adam" .
+element:ML a class:Requirement ;
+    rdfs:label "Metrics library" .
+element:MMS a class:Requirement ;
+    rdfs:label "Min Max Scaler" .
+element:MPL a class:Requirement ;
+    rdfs:label "Matplotlib library" .
+element:PCC a class:Requirement ;
+    rdfs:label "Pearson correlation coefficient function" .
+element:PY a class:Requirement ;
+    rdfs:label "Various python functions" .
+element:RW a class:Requirement ;
+    rdfs:label "Rolling Window feature" .
+element:TIA a class:Requirement ;
+    rdfs:label "Tinkoff Invest API" .
+element:TTS a class:Requirement ;
+    rdfs:label "Sklearn train_test_split" .
+
+
+# 1st level
+
+# Functions
+element:A1 a class:Function ;
+    rdfs:label "Requesting Data" ;
+    prop:hasInput element:I1, element:I2 ;
+    prop:hasOutput element:DF1, element:DF2 ;
+    prop:hasRequirement element:TIA ;
+    prop:subFunctionOf element:A0 .
+element:A2 a class:Function ;
+    rdfs:label "Data Preprocessing" ;
+    prop:hasInput element:DF1, element:DF2 ;
+    prop:hasOutput element:DF3, element:DF4 ;
+    prop:hasRequirement element:MMS, element:PY, element:RW, element:TTS ;
+    prop:subFunctionOf element:A0 .
+element:A3 a class:Function ;
+    rdfs:label "Neural Network Architecture & Training" ;
+    prop:hasInput element:DF3, element:DF4 ;
+    prop:hasOutput element:DF4, element:DF5, element:DF6 ;
+    prop:hasRequirement element:KC, element:KML, element:KOA ;
+    prop:subFunctionOf element:A0 .
+element:A4 a class:Function ;
+    rdfs:label "Model Evaluation" ;
+    prop:hasInput element:DF4, element:DF5, element:DF6 ;
+    prop:hasKPI element:C, element:MAE, element:MAPE, element:MSE, element:R2S ;
+    prop:hasOutput element:DF5 ;
+    prop:hasRequirement element:KML, element:ML, element:MPL ;
+    prop:subFunctionOf element:A0 .
+element:A5 a class:Function ;
+    rdfs:label "Data Prediction" ;
+    prop:hasInput element:DF5 ;
+    prop:hasOutput element:O1, element:O2 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A0 .
+
+# Input / Output
+element:DF1 a class:DataFlow ;
+    rdfs:label "Historical stock prices" .
+element:DF2 a class:DataFlow ;
+    rdfs:label "Trading volumes" .
+element:DF3 a class:DataFlow ;
+    rdfs:label "Training data" .
+element:DF4 a class:DataFlow ;
+    rdfs:label "Test data" .
+element:DF5 a class:DataFlow ;
+    rdfs:label "Trained model" .
+element:DF6 a class:DataFlow ;
+    rdfs:label "Training history" .
+
+
+# 2nd level
+
+# Functions
+element:A11 a class:Function ;
+    rdfs:label "Get Available Tickers" ;
+    prop:hasInput element:I1, element:I2 ;
+    prop:hasOutput element:I1, element:I2 ;
+    prop:hasRequirement element:TIA ;
+    prop:subFunctionOf element:A1 .
+element:A12 a class:Function ;
+    rdfs:label "Get FIGI" ;
+    prop:hasInput element:I1, element:I2 ;
+    prop:hasOutput element:DF11, element:I2 ;
+    prop:hasRequirement element:TIA ;
+    prop:subFunctionOf element:A1 .
+element:A13 a class:Function ;
+    rdfs:label "Get Candles" ;
+    prop:hasInput element:DF11, element:I2 ;
+    prop:hasOutput element:DF1, element:DF2 ;
+    prop:hasRequirement element:TIA ;
+    prop:subFunctionOf element:A1 .
+
+# Input / Output
+element:DF11 a class:DataFlow ;
+    rdfs:label "FIGI" .
+
+# Functions
+element:A21 a class:Function ;
+    rdfs:label "Data Transformation" ;
+    prop:hasInput element:DF1, element:DF2 ;
+    prop:hasOutput element:DF21 ;
+    prop:hasRequirement element:PY ;
+    prop:subFunctionOf element:A2 .
+element:A22 a class:Function ;
+    rdfs:label "Time Series Specific Processing" ;
+    prop:hasInput element:DF21 ;
+    prop:hasOutput element:DF22 ;
+    prop:hasRequirement element:PY ;
+    prop:subFunctionOf element:A2 .
+element:A23 a class:Function ;
+    rdfs:label "Feature Engineering" ;
+    prop:hasInput element:DF22 ;
+    prop:hasOutput element:DF23 ;
+    prop:hasRequirement element:RWF ;
+    prop:subFunctionOf element:A2 .
+element:A24 a class:Function ;
+    rdfs:label "Data Cleaning" ;
+    prop:hasInput element:DF23 ;
+    prop:hasOutput element:DF24 ;
+    prop:hasRequirement element:PY ;
+    prop:subFunctionOf element:A2 .
+element:A25 a class:Function ;
+    rdfs:label "Data Scaling" ;
+    prop:hasInput element:DF24 ;
+    prop:hasOutput element:DF25 ;
+    prop:hasRequirement element:MMS ;
+    prop:subFunctionOf element:A2 .
+element:A26 a class:Function ;
+    rdfs:label "Data Splitting" ;
+    prop:hasInput element:DF25 ;
+    prop:hasOutput element:DF3, element:DF4 ;
+    prop:hasRequirement element:TTS ;
+    prop:subFunctionOf element:A2 .
+
+# Input / Output
+element:DF21 a class:DataFlow ;
+    rdfs:label "Transformed data" .
+element:DF22 a class:DataFlow ;
+    rdfs:label "Specifically processed data" .
+element:DF23 a class:DataFlow ;
+    rdfs:label "Engineered data" .
+element:DF24 a class:DataFlow ;
+    rdfs:label "Clean data" .
+element:DF25 a class:DataFlow ;
+    rdfs:label "Scaled data" .
+
+# Functions
+element:A31 a class:Function ;
+    rdfs:label "Building NN Model" ;
+    prop:hasInput element:DF3, element:DF4 ;
+    prop:hasOutput element:DF3, element:DF4 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A3 .
+element:A32 a class:Function ;
+    rdfs:label "Compile Model" ;
+    prop:hasInput element:DF3, element:DF4 ;
+    prop:hasOutput element:DF3, element:DF4 ;
+    prop:hasRequirement element:KOA ;
+    prop:subFunctionOf element:A3 .
+element:A33 a class:Function ;
+    rdfs:label "Training Optimization" ;
+    prop:hasInput element:DF3, element:DF4 ;
+    prop:hasOutput element:DF3, element:DF4 ;
+    prop:hasRequirement element:KC ;
+    prop:subFunctionOf element:A3 .
+element:A34 a class:Function ;
+    rdfs:label "Training the Model" ;
+    prop:hasInput element:DF3, element:DF4 ;
+    prop:hasOutput element:DF4, element:DF5, element:DF6 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A3 .
+
+# Functions
+element:A41 a class:Function ;
+    rdfs:label "Predict" ;
+    prop:hasInput element:DF4, element:DF5, element:DF6 ;
+    prop:hasOutput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A4 .
+element:A42 a class:Function ;
+    rdfs:label "Evaluate Model" ;
+    prop:hasInput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasKPI element:MAE, element:MAPE, element:MSE, element:R2S ;
+    prop:hasOutput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasRequirement element:ML ;
+    prop:subFunctionOf element:A4 .
+element:A43 a class:Function ;
+    rdfs:label "Calculate Correlation" ;
+    prop:hasInput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasKPI element:C ;
+    prop:hasOutput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasRequirement element:PCC ;
+    prop:subFunctionOf element:A4 .
+element:A44 a class:Function ;
+    rdfs:label "Plotting" ;
+    prop:hasInput element:DF4, element:DF41, element:DF5, element:DF6 ;
+    prop:hasOutput element:DF5 ;
+    prop:hasRequirement element:MPL ;
+    prop:subFunctionOf element:A4 .
+
+# Input / Output
+element:DF41 a class:DataFlow ;
+    rdfs:label "Predicted data" .
+
+# Functions
+element:A51 a class:Function ;
+    rdfs:label "Predict Current Interval" ;
+    prop:hasInput element:DF5 ;
+    prop:hasOutput element:DF51 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A5 .
+element:A52 a class:Function ;
+    rdfs:label "Get Current Interval Price" ;
+    prop:hasInput element:DF51 ;
+    prop:hasOutput element:DF51, element:DF52, element:O1 ;
+    prop:hasRequirement element:TIA ;
+    prop:subFunctionOf element:A5 .
+element:A53 a class:Function ;
+    rdfs:label "Predict Next Interval" ;
+    prop:hasInput element:DF51, element:DF52, element:O1 ;
+    prop:hasOutput element:DF51, element:DF52, element:DF53, element:O1 ;
+    prop:hasRequirement element:KML ;
+    prop:subFunctionOf element:A5 .
+element:A54 a class:Function ;
+    rdfs:label "Inverse Transform" ;
+    prop:hasInput element:DF51, element:DF52, element:DF53, element:O1 ;
+    prop:hasOutput element:O1, element:O2 ;
+    prop:hasRequirement element:MMS ;
+    prop:subFunctionOf element:A5 .
+
+# Input / Output
+element:DF51 a class:DataFlow ;
+    rdfs:label "Current interval prediction (scaled)" .
+element:DF52 a class:DataFlow ;
+    rdfs:label "Actual price (scaled)" .
+element:DF53 a class:DataFlow ;
+    rdfs:label "Next interval prediction (scaled)" .

@@ -16,6 +16,13 @@ for /f "usebackq tokens=*" %%a in (".env") do (
 
 echo APP_USER=%APP_USER%
 
+if not exist "app/resources/knowledge_base\" (
+    mkdir "app/resources/knowledge_base"
+    xcopy /s /q "app/initial_knowledge_base\*" "app/resources/knowledge_base\"
+) else (
+    dir "app/resources/knowledge_base" /b | findstr "^" >nul || xcopy /s /q "app/initial_knowledge_base\*" "app/resources/knowledge_base\"
+)
+
 mvn clean install -DskipTests=true ^
     && docker build --build-arg APP_USER=%APP_USER% -t stock-price-prediction-bot . ^
     && docker build -t stock-price-prediction-app ./app ^
