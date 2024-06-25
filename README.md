@@ -7,7 +7,7 @@ To launch this expert system you should:
 2. Have a brokerage account
 3. Issue at least read-only token in user account settings: https://www.tinkoff.ru/invest/settings/
 4. Create a new bot using Telegram **@BotFather**: https://t.me/BotFather. After bot is created you will get Telegram bot token.
-5. Find out your user id in Telegram, you can use **@userinfobot**: https://t.me/userinfobot
+5. Find out your numeric user id in Telegram, you can use **@userinfobot**: https://t.me/userinfobot
 6. Come up with an idea of your username and password to connect to the storage inside Docker container via sftp.
 7. Create **hidden.ini** file in the **app/** folder and put Tinkoff API token and your Telegram user id there in the following format:
 ```
